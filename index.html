@@ -453,8 +453,8 @@
                     dlHtml += `
                         <div class="deadline-item">
                             <div>
-                                <div class="dl-info">${d.text.substring(0, 50)}${d.text.length > 50 ? '...' : ''}</div>
-                                <div class="dl-project">${d.project}</div>
+                                <div class="dl-info">${d.project}</div>
+                                <div class="dl-project">${d.text.substring(0, 50)}${d.text.length > 50 ? '...' : ''}</div>
                             </div>
                             <div class="dl-dday ${cls}">${ddayText}</div>
                         </div>`;
