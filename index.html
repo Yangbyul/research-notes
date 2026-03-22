@@ -222,7 +222,19 @@
     <script>
         // ===== 설정 =====
         const STORAGE_KEY = 'research-notes-settings';
-        let settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        // URL 파라미터에서 설정 읽기
+        const urlParams = new URLSearchParams(window.location.search);
+        const defaultSettings = {
+            sheetId: '1G9R_8cuSeBG3kVeze5wIesQeRqwdRd94XI5qQt07Z38',
+            sheetGid: '610404484',
+            sheetName: '설문지 응답 시트1',
+            formUrl: 'https://forms.gle/jP7KTeNUeyDfjnBQ9'
+        };
+        let settings = Object.assign({}, defaultSettings, JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'));
+        // URL 파라미터가 있으면 우선 적용
+        if (urlParams.get('sid')) settings.sheetId = urlParams.get('sid');
+        if (urlParams.get('gid')) settings.sheetGid = urlParams.get('gid');
+        if (urlParams.get('form')) settings.formUrl = urlParams.get('form');
         let allMemos = [];
         let currentProject = null;
         let activeTag = '전체';
