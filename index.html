@@ -367,22 +367,24 @@
                 projects[m.project].memos.push(m);
             }
 
-            // 투고 태그가 있으면 상태 변경
+            // 프로젝트별 가장 가까운 마감일 계산
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
             for (const p of Object.values(projects)) {
-                const hasPub = p.memos.some(m => m.tags.includes('투고'));
-                if (hasPub) {
-                    const lastSubmission = [...p.memos].reverse().find(m => m.tags.includes('투고'));
-                    if (lastSubmission) {
-                        const content = lastSubmission.memo.toLowerCase();
-                        if (content.includes('출판') || content.includes('게재') || content.includes('accepted')) {
-                            p.status = '출판';
-                        } else if (content.includes('리비전') || content.includes('revision') || content.includes('수정')) {
-                            p.status = '리비전';
-                        } else {
-                            p.status = '투고중';
-                        }
+                let nearestDday = null;
+                let nearestDate = '';
+                for (const m of p.memos) {
+                    let dStr = m.deadline;
+                    if (!dStr) continue;
+                    const dDate = new Date(dStr.replace(/\./g, '-'));
+                    const diff = Math.ceil((dDate - today) / (1000 * 60 * 60 * 24));
+                    if (diff >= 0 && (nearestDday === null || diff < nearestDday)) {
+                        nearestDday = diff;
+                        nearestDate = dStr;
                     }
                 }
+                p.nearestDday = nearestDday;
+                p.nearestDate = nearestDate;
             }
 
             // 기본 프로젝트 표시 (메모 없어도)
@@ -460,9 +462,18 @@
                 const color = getProjectColor(p.name);
                 const lastMemo = p.memos.length > 0 ? p.memos[p.memos.length - 1] : null;
                 const lastDate = lastMemo ? lastMemo.date : '-';
+                let ddayHtml = '';
+                if (p.nearestDday !== null) {
+                    const cls = p.nearestDday <= 3 ? 'dday-urgent' : p.nearestDday <= 14 ? 'dday-soon' : 'dday-ok';
+                    const ddayText = p.nearestDday === 0 ? 'D-DAY' : `D-${p.nearestDday}`;
+                    ddayHtml = `<span class="dl-dday ${cls}" style="font-size:12px;padding:2px 8px;margin-left:8px;">${ddayText}</span>`;
+                }
                 html += `
                     <div class="project-card" onclick="showProject('${p.name}')" style="border-left-color:${color}">
-                        <div class="proj-name">${p.name}</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            <div class="proj-name">${p.name}</div>
+                            ${ddayHtml}
+                        </div>
                         <span class="proj-status status-${p.status}">${p.status}</span>
                         <div class="proj-stats">
                             <span>메모 ${p.memos.length}개</span>
