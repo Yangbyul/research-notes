@@ -206,7 +206,9 @@
             <h3>설정</h3>
             <label>구글 시트 ID</label>
             <input type="text" id="inputSheetId" placeholder="구글 시트 URL에서 /d/ 뒤의 긴 문자열">
-            <label>시트 이름 (탭 이름)</label>
+            <label>시트 GID (시트 URL의 gid= 뒤 숫자)</label>
+            <input type="text" id="inputSheetGid" placeholder="예: 610404484">
+            <label>시트 이름 (GID 없을 때만)</label>
             <input type="text" id="inputSheetName" placeholder="시트1" value="설문지 응답 시트1">
             <label>구글 폼 URL</label>
             <input type="text" id="inputFormUrl" placeholder="https://docs.google.com/forms/d/e/...">
@@ -239,6 +241,7 @@
         // ===== 설정 모달 =====
         function openSettings() {
             document.getElementById('inputSheetId').value = settings.sheetId || '';
+            document.getElementById('inputSheetGid').value = settings.sheetGid || '';
             document.getElementById('inputSheetName').value = settings.sheetName || '설문지 응답 시트1';
             document.getElementById('inputFormUrl').value = settings.formUrl || '';
             document.getElementById('settingsModal').classList.add('active');
@@ -248,6 +251,7 @@
         }
         function saveSettings() {
             settings.sheetId = document.getElementById('inputSheetId').value.trim();
+            settings.sheetGid = document.getElementById('inputSheetGid').value.trim();
             settings.sheetName = document.getElementById('inputSheetName').value.trim() || '설문지 응답 시트1';
             settings.formUrl = document.getElementById('inputFormUrl').value.trim();
             localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -262,7 +266,9 @@
                 return;
             }
 
-            const url = `https://docs.google.com/spreadsheets/d/${settings.sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(settings.sheetName)}`;
+            const gid = settings.sheetGid || '';
+            const sheetParam = gid ? `&gid=${gid}` : `&sheet=${encodeURIComponent(settings.sheetName)}`;
+            const url = `https://docs.google.com/spreadsheets/d/${settings.sheetId}/gviz/tq?tqx=out:json${sheetParam}`;
 
             try {
                 document.getElementById('projectGrid').innerHTML = '<div class="loading">불러오는 중...</div>';
@@ -281,7 +287,15 @@
                     if (cells[0] && cells[0].f) {
                         dateStr = cells[0].f;
                     } else if (cells[0] && cells[0].v) {
-                        dateStr = cells[0].v;
+                        const v = cells[0].v;
+                        // Date(2026,2,22,13,57,41) 형식 파싱
+                        const dm = String(v).match(/Date\((\d+),(\d+),(\d+)/);
+                        if (dm) {
+                            const y = dm[1], m = String(Number(dm[2])+1).padStart(2,'0'), d = dm[3].padStart(2,'0');
+                            dateStr = `${y}-${m}-${d}`;
+                        } else {
+                            dateStr = v;
+                        }
                     }
 
                     const project = cells[1] ? (cells[1].v || '') : '';
