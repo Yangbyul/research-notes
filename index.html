@@ -316,18 +316,20 @@
                     const memo = cells[3] ? (cells[3].v || '') : '';
                     const link = cells[4] ? (cells[4].v || '') : '';
 
-                    // 마감일 파싱 (6번째 컬럼)
+                    // 마감일 파싱 (6번째 컬럼) - Date() 형식 우선 파싱
                     let deadline = '';
-                    if (cells[5]) {
-                        if (cells[5].f) {
-                            deadline = cells[5].f;
-                        } else if (cells[5].v) {
-                            const dv = String(cells[5].v);
-                            const ddm = dv.match(/Date\((\d+),(\d+),(\d+)/);
-                            if (ddm) {
-                                deadline = `${ddm[1]}-${String(Number(ddm[2])+1).padStart(2,'0')}-${ddm[3].padStart(2,'0')}`;
+                    if (cells[5] && cells[5].v) {
+                        const dv = String(cells[5].v);
+                        const ddm = dv.match(/Date\((\d+),(\d+),(\d+)/);
+                        if (ddm) {
+                            deadline = `${ddm[1]}-${String(Number(ddm[2])+1).padStart(2,'0')}-${ddm[3].padStart(2,'0')}`;
+                        } else if (cells[5].f) {
+                            // "2026. 4. 30" → "2026-04-30"
+                            const parts = cells[5].f.replace(/\s/g,'').split('.');
+                            if (parts.length >= 3) {
+                                deadline = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
                             } else {
-                                deadline = dv;
+                                deadline = cells[5].f;
                             }
                         }
                     }
