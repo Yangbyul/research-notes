@@ -315,10 +315,26 @@
                     const memo = cells[3] ? (cells[3].v || '') : '';
                     const link = cells[4] ? (cells[4].v || '') : '';
 
+                    // 마감일 파싱 (6번째 컬럼)
+                    let deadline = '';
+                    if (cells[5]) {
+                        if (cells[5].f) {
+                            deadline = cells[5].f;
+                        } else if (cells[5].v) {
+                            const dv = String(cells[5].v);
+                            const ddm = dv.match(/Date\((\d+),(\d+),(\d+)/);
+                            if (ddm) {
+                                deadline = `${ddm[1]}-${String(Number(ddm[2])+1).padStart(2,'0')}-${ddm[3].padStart(2,'0')}`;
+                            } else {
+                                deadline = dv;
+                            }
+                        }
+                    }
+
                     // 태그 파싱 (쉼표 또는 세미콜론 구분)
                     const tags = tagsRaw.split(/[,;]/).map(t => t.trim().replace('#', '')).filter(t => t);
 
-                    allMemos.push({ date: dateStr, project, tags, memo, link });
+                    allMemos.push({ date: dateStr, project, tags, memo, link, deadline });
                 }
 
                 renderHome();
@@ -389,19 +405,26 @@
                 <div class="summary-item"><div class="num">${statusCount['투고중'] + statusCount['리비전']}</div><div class="label">투고/리비전</div></div>
             `;
 
-            // 마감 디데이 (투고 태그 중 날짜가 포함된 메모)
+            // 마감 디데이
             const deadlines = [];
             for (const m of allMemos) {
-                if (m.tags.includes('투고') && m.memo) {
+                let dDateStr = '';
+                // 마감일 필드 우선
+                if (m.deadline) {
+                    dDateStr = m.deadline;
+                }
+                // 없으면 메모 내용에서 날짜 추출
+                else if (m.memo) {
                     const dateMatch = m.memo.match(/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/);
-                    if (dateMatch) {
-                        const dDate = new Date(dateMatch[1].replace(/\./g, '-'));
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const diff = Math.ceil((dDate - today) / (1000 * 60 * 60 * 24));
-                        if (diff >= 0) {
-                            deadlines.push({ project: m.project, text: m.memo, dday: diff, date: dateMatch[1] });
-                        }
+                    if (dateMatch) dDateStr = dateMatch[1];
+                }
+                if (dDateStr) {
+                    const dDate = new Date(dDateStr.replace(/\./g, '-'));
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const diff = Math.ceil((dDate - today) / (1000 * 60 * 60 * 24));
+                    if (diff >= 0) {
+                        deadlines.push({ project: m.project, text: m.memo, dday: diff, date: dDateStr });
                     }
                 }
             }
@@ -516,6 +539,7 @@
             for (const m of sorted) {
                 const tagHtml = m.tags.map(t => `<span class="memo-tag tag-${t}">#${t}</span>`).join('');
                 const linkHtml = m.link ? `<a class="memo-link" href="${m.link}" target="_blank">📎 첨부 파일/링크</a>` : '';
+                const deadlineHtml = m.deadline ? `<span style="font-size:12px;color:#e65100;margin-top:6px;display:block;">📅 마감: ${m.deadline}</span>` : '';
 
                 html += `
                     <div class="memo-item">
@@ -524,6 +548,7 @@
                             <span class="memo-date">${m.date}</span>
                         </div>
                         <div class="memo-content">${escapeHtml(m.memo)}</div>
+                        ${deadlineHtml}
                         ${linkHtml}
                     </div>`;
             }
