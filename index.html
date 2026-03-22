@@ -27,6 +27,7 @@
         .project-card .proj-name { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
         .project-card .proj-status { font-size: 12px; padding: 3px 10px; border-radius: 20px; display: inline-block; margin-bottom: 10px; }
         .status-진행중 { background: #e8f5e9; color: #2e7d32; }
+        .status-투고준비 { background: #f3e5f5; color: #7b1fa2; }
         .status-투고중 { background: #fff3e0; color: #e65100; }
         .status-리비전 { background: #fce4ec; color: #c62828; }
         .status-출판 { background: #e3f2fd; color: #1565c0; }
@@ -331,10 +332,13 @@
                         }
                     }
 
+                    // 상태 (7번째 컬럼)
+                    const status = (cells[6] && cells[6].v) ? cells[6].v : '';
+
                     // 태그 파싱 (쉼표 또는 세미콜론 구분)
                     const tags = tagsRaw.split(/[,;]/).map(t => t.trim().replace('#', '')).filter(t => t);
 
-                    allMemos.push({ date: dateStr, project, tags, memo, link, deadline });
+                    allMemos.push({ date: dateStr, project, tags, memo, link, deadline, status });
                 }
 
                 renderHome();
@@ -365,6 +369,12 @@
                     projects[m.project] = { name: m.project, memos: [], status: '진행중' };
                 }
                 projects[m.project].memos.push(m);
+            }
+
+            // 프로젝트별 상태: 가장 최근에 상태가 입력된 메모 기준
+            for (const p of Object.values(projects)) {
+                const statusMemo = [...p.memos].reverse().find(m => m.status);
+                if (statusMemo) p.status = statusMemo.status;
             }
 
             // 프로젝트별 가장 가까운 마감일 계산
