@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>연구노트</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white; padding: 20px 24px;
+        }
+        .header h1 { font-size: 22px; font-weight: 700; }
+        .header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+
+        .container { max-width: 960px; margin: 0 auto; padding: 16px; }
+
+        /* 홈 - 프로젝트 카드 */
+        .project-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .project-card {
+            background: white; border-radius: 12px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            cursor: pointer; transition: box-shadow 0.2s, transform 0.2s; border-left: 4px solid #3498db;
+        }
+        .project-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); transform: translateY(-1px); }
+        .project-card .proj-name { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+        .project-card .proj-status { font-size: 12px; padding: 3px 10px; border-radius: 20px; display: inline-block; margin-bottom: 10px; }
+        .status-진행중 { background: #e8f5e9; color: #2e7d32; }
+        .status-투고중 { background: #fff3e0; color: #e65100; }
+        .status-리비전 { background: #fce4ec; color: #c62828; }
+        .status-출판 { background: #e3f2fd; color: #1565c0; }
+        .project-card .proj-stats { font-size: 13px; color: #777; display: flex; gap: 14px; }
+
+        /* 상단 요약 */
+        .summary-bar {
+            display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .summary-item {
+            background: white; border-radius: 10px; padding: 14px 18px; flex: 1; min-width: 120px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); text-align: center;
+        }
+        .summary-item .num { font-size: 28px; font-weight: 700; }
+        .summary-item .label { font-size: 11px; color: #888; margin-top: 2px; }
+
+        /* 마감 디데이 */
+        .deadline-section { margin-bottom: 20px; }
+        .deadline-section h2 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: #555; }
+        .deadline-item {
+            background: white; border-radius: 8px; padding: 12px 16px; margin-bottom: 6px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center;
+        }
+        .deadline-item .dl-info { font-size: 14px; }
+        .deadline-item .dl-project { font-size: 11px; color: #888; }
+        .deadline-item .dl-dday { font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 16px; }
+        .dday-urgent { background: #ffebee; color: #c62828; }
+        .dday-soon { background: #fff8e1; color: #f57f17; }
+        .dday-ok { background: #e8f5e9; color: #2e7d32; }
+
+        /* 프로젝트 상세 */
+        .detail-view { display: none; }
+        .detail-view.active { display: block; }
+        .back-btn {
+            background: none; border: none; font-size: 14px; color: #3498db; cursor: pointer;
+            padding: 8px 0; margin-bottom: 12px; display: flex; align-items: center; gap: 4px;
+        }
+        .detail-header { background: white; border-radius: 12px; padding: 20px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .detail-header h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+        .detail-meta { font-size: 13px; color: #777; display: flex; gap: 16px; flex-wrap: wrap; }
+
+        /* 태그 필터 */
+        .tag-filter { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .tag-btn {
+            padding: 6px 14px; border-radius: 20px; border: 1px solid #ddd; background: white;
+            font-size: 13px; cursor: pointer; transition: all 0.2s;
+        }
+        .tag-btn.active { background: #3498db; color: white; border-color: #3498db; }
+        .tag-btn:hover { border-color: #3498db; }
+
+        /* 메모 타임라인 */
+        .memo-list { }
+        .memo-item {
+            background: white; border-radius: 10px; padding: 16px; margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 3px solid #3498db;
+        }
+        .memo-item .memo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .memo-item .memo-date { font-size: 12px; color: #999; }
+        .memo-item .memo-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+        .memo-item .memo-tag {
+            font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #e3f2fd; color: #1565c0;
+        }
+        .memo-item .memo-content { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+        .memo-item .memo-link { font-size: 12px; color: #3498db; margin-top: 8px; display: block; }
+
+        .tag-RQ { background: #fce4ec; color: #c62828; }
+        .tag-설계 { background: #e8f5e9; color: #2e7d32; }
+        .tag-도구 { background: #fff3e0; color: #e65100; }
+        .tag-분석 { background: #e3f2fd; color: #1565c0; }
+        .tag-아이디어 { background: #f3e5f5; color: #7b1fa2; }
+        .tag-투고 { background: #fff8e1; color: #f57f17; }
+        .tag-기타 { background: #f5f5f5; color: #616161; }
+
+        /* 투고 기록 */
+        .submission-section { margin-top: 16px; }
+        .submission-section h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: #555; }
+        .submission-item {
+            background: white; border-radius: 8px; padding: 12px 16px; margin-bottom: 6px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-size: 13px;
+        }
+
+        /* 설정 모달 */
+        .settings-btn {
+            position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px;
+            border-radius: 50%; background: #3498db; color: white; border: none;
+            font-size: 20px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 200; justify-content: center; align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white; border-radius: 14px; padding: 24px; width: 90%; max-width: 440px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .modal h3 { font-size: 18px; margin-bottom: 16px; }
+        .modal label { font-size: 13px; color: #555; display: block; margin-bottom: 4px; margin-top: 12px; }
+        .modal input, .modal textarea {
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;
+        }
+        .modal .btn-row { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+        .modal button {
+            padding: 8px 20px; border-radius: 8px; border: none; font-size: 14px; cursor: pointer;
+        }
+        .modal .btn-save { background: #3498db; color: white; }
+        .modal .btn-cancel { background: #eee; color: #555; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; line-height: 1.6; }
+
+        .form-link-bar {
+            background: white; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center;
+        }
+        .form-link-bar a {
+            background: #3498db; color: white; padding: 8px 16px; border-radius: 8px;
+            text-decoration: none; font-size: 13px; font-weight: 600;
+        }
+
+        .loading { text-align: center; padding: 40px; color: #999; }
+
+        @media (max-width: 768px) {
+            .header { padding: 16px; }
+            .header h1 { font-size: 18px; }
+            .container { padding: 10px; }
+            .project-grid { grid-template-columns: 1fr; }
+            .summary-bar { gap: 6px; }
+            .summary-item { padding: 10px 12px; min-width: 70px; }
+            .summary-item .num { font-size: 22px; }
+            .summary-item .label { font-size: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Research Notes</h1>
+        <p>연구 프로젝트 관리</p>
+    </div>
+
+    <!-- 홈 뷰 -->
+    <div class="container" id="homeView">
+        <div class="summary-bar" id="summaryBar"></div>
+
+        <div class="deadline-section" id="deadlineSection"></div>
+
+        <div class="form-link-bar" id="formLinkBar" style="display:none;">
+            <span style="font-size:14px;">새 메모 추가</span>
+            <a href="#" id="formLink" target="_blank">구글 폼 열기</a>
+        </div>
+
+        <div class="project-grid" id="projectGrid"></div>
+    </div>
+
+    <!-- 프로젝트 상세 뷰 -->
+    <div class="container detail-view" id="detailView">
+        <button class="back-btn" onclick="showHome()">← 전체 프로젝트</button>
+        <div class="detail-header" id="detailHeader"></div>
+
+        <div class="form-link-bar" id="detailFormLinkBar" style="display:none;">
+            <span style="font-size:14px;">이 프로젝트에 메모 추가</span>
+            <a href="#" id="detailFormLink" target="_blank">구글 폼 열기</a>
+        </div>
+
+        <div class="tag-filter" id="tagFilter"></div>
+        <div class="memo-list" id="memoList"></div>
+    </div>
+
+    <!-- 설정 버튼 -->
+    <button class="settings-btn" onclick="openSettings()">⚙</button>
+
+    <!-- 설정 모달 -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h3>설정</h3>
+            <label>구글 시트 ID</label>
+            <input type="text" id="inputSheetId" placeholder="구글 시트 URL에서 /d/ 뒤의 긴 문자열">
+            <label>시트 이름 (탭 이름)</label>
+            <input type="text" id="inputSheetName" placeholder="시트1" value="설문지 응답 시트1">
+            <label>구글 폼 URL</label>
+            <input type="text" id="inputFormUrl" placeholder="https://docs.google.com/forms/d/e/...">
+            <div class="btn-row">
+                <button class="btn-cancel" onclick="closeSettings()">취소</button>
+                <button class="btn-save" onclick="saveSettings()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 설정 =====
+        const STORAGE_KEY = 'research-notes-settings';
+        let settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        let allMemos = [];
+        let currentProject = null;
+        let activeTag = '전체';
+
+        // 프로젝트 색상
+        const PROJECT_COLORS = {
+            '수업실연': '#e74c3c',
+            '공간컴퓨팅': '#27ae60',
+            'XR SLR': '#8e44ad'
+        };
+
+        function getProjectColor(name) {
+            return PROJECT_COLORS[name] || '#3498db';
+        }
+
+        // ===== 설정 모달 =====
+        function openSettings() {
+            document.getElementById('inputSheetId').value = settings.sheetId || '';
+            document.getElementById('inputSheetName').value = settings.sheetName || '설문지 응답 시트1';
+            document.getElementById('inputFormUrl').value = settings.formUrl || '';
+            document.getElementById('settingsModal').classList.add('active');
+        }
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+        function saveSettings() {
+            settings.sheetId = document.getElementById('inputSheetId').value.trim();
+            settings.sheetName = document.getElementById('inputSheetName').value.trim() || '설문지 응답 시트1';
+            settings.formUrl = document.getElementById('inputFormUrl').value.trim();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+            closeSettings();
+            loadData();
+        }
+
+        // ===== 데이터 로드 (구글 시트) =====
+        async function loadData() {
+            if (!settings.sheetId) {
+                showEmptyState();
+                return;
+            }
+
+            const url = `https://docs.google.com/spreadsheets/d/${settings.sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(settings.sheetName)}`;
+
+            try {
+                document.getElementById('projectGrid').innerHTML = '<div class="loading">불러오는 중...</div>';
+                const res = await fetch(url);
+                const text = await res.text();
+                const json = JSON.parse(text.substring(47, text.length - 2));
+
+                allMemos = [];
+                const rows = json.table.rows;
+                for (const row of rows) {
+                    const cells = row.c;
+                    if (!cells || !cells[0]) continue;
+
+                    // 타임스탬프 파싱
+                    let dateStr = '';
+                    if (cells[0] && cells[0].f) {
+                        dateStr = cells[0].f;
+                    } else if (cells[0] && cells[0].v) {
+                        dateStr = cells[0].v;
+                    }
+
+                    const project = cells[1] ? (cells[1].v || '') : '';
+                    const tagsRaw = cells[2] ? (cells[2].v || '') : '';
+                    const memo = cells[3] ? (cells[3].v || '') : '';
+                    const link = cells[4] ? (cells[4].v || '') : '';
+
+                    // 태그 파싱 (쉼표 또는 세미콜론 구분)
+                    const tags = tagsRaw.split(/[,;]/).map(t => t.trim().replace('#', '')).filter(t => t);
+
+                    allMemos.push({ date: dateStr, project, tags, memo, link });
+                }
+
+                renderHome();
+            } catch (e) {
+                console.error('데이터 로드 실패:', e);
+                document.getElementById('projectGrid').innerHTML =
+                    '<div class="empty-state"><div class="icon">⚠️</div><p>데이터를 불러올 수 없습니다.<br>시트 ID와 공유 설정을 확인해주세요.<br>(시트를 "링크가 있는 모든 사용자" 보기 권한으로 공유)</p></div>';
+            }
+        }
+
+        function showEmptyState() {
+            document.getElementById('summaryBar').innerHTML = '';
+            document.getElementById('deadlineSection').innerHTML = '';
+            document.getElementById('projectGrid').innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">📝</div>
+                    <p>연구노트를 시작하려면<br>오른쪽 하단 ⚙ 버튼을 눌러<br>구글 시트 ID를 설정해주세요.</p>
+                </div>`;
+        }
+
+        // ===== 홈 렌더링 =====
+        function renderHome() {
+            // 프로젝트별 그룹핑
+            const projects = {};
+            for (const m of allMemos) {
+                if (!m.project) continue;
+                if (!projects[m.project]) {
+                    projects[m.project] = { name: m.project, memos: [], status: '진행중' };
+                }
+                projects[m.project].memos.push(m);
+            }
+
+            // 투고 태그가 있으면 상태 변경
+            for (const p of Object.values(projects)) {
+                const hasPub = p.memos.some(m => m.tags.includes('투고'));
+                if (hasPub) {
+                    const lastSubmission = [...p.memos].reverse().find(m => m.tags.includes('투고'));
+                    if (lastSubmission) {
+                        const content = lastSubmission.memo.toLowerCase();
+                        if (content.includes('출판') || content.includes('게재') || content.includes('accepted')) {
+                            p.status = '출판';
+                        } else if (content.includes('리비전') || content.includes('revision') || content.includes('수정')) {
+                            p.status = '리비전';
+                        } else {
+                            p.status = '투고중';
+                        }
+                    }
+                }
+            }
+
+            // 기본 프로젝트 표시 (메모 없어도)
+            const defaultProjects = ['수업실연', '공간컴퓨팅', 'XR SLR'];
+            for (const name of defaultProjects) {
+                if (!projects[name]) {
+                    projects[name] = { name, memos: [], status: '진행중' };
+                }
+            }
+
+            // 요약
+            const projList = Object.values(projects);
+            const statusCount = { '진행중': 0, '투고중': 0, '리비전': 0, '출판': 0 };
+            for (const p of projList) statusCount[p.status]++;
+
+            document.getElementById('summaryBar').innerHTML = `
+                <div class="summary-item"><div class="num">${projList.length}</div><div class="label">전체 프로젝트</div></div>
+                <div class="summary-item"><div class="num">${allMemos.length}</div><div class="label">전체 메모</div></div>
+                <div class="summary-item"><div class="num">${statusCount['진행중']}</div><div class="label">진행중</div></div>
+                <div class="summary-item"><div class="num">${statusCount['투고중'] + statusCount['리비전']}</div><div class="label">투고/리비전</div></div>
+            `;
+
+            // 마감 디데이 (투고 태그 중 날짜가 포함된 메모)
+            const deadlines = [];
+            for (const m of allMemos) {
+                if (m.tags.includes('투고') && m.memo) {
+                    const dateMatch = m.memo.match(/(\d{4}[-/.]\d{1,2}[-/.]\d{1,2})/);
+                    if (dateMatch) {
+                        const dDate = new Date(dateMatch[1].replace(/\./g, '-'));
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const diff = Math.ceil((dDate - today) / (1000 * 60 * 60 * 24));
+                        if (diff >= 0) {
+                            deadlines.push({ project: m.project, text: m.memo, dday: diff, date: dateMatch[1] });
+                        }
+                    }
+                }
+            }
+            deadlines.sort((a, b) => a.dday - b.dday);
+
+            let dlHtml = '';
+            if (deadlines.length > 0) {
+                dlHtml = '<h2>다가오는 마감</h2>';
+                for (const d of deadlines.slice(0, 5)) {
+                    const cls = d.dday <= 3 ? 'dday-urgent' : d.dday <= 14 ? 'dday-soon' : 'dday-ok';
+                    const ddayText = d.dday === 0 ? 'D-DAY' : `D-${d.dday}`;
+                    dlHtml += `
+                        <div class="deadline-item">
+                            <div>
+                                <div class="dl-info">${d.text.substring(0, 50)}${d.text.length > 50 ? '...' : ''}</div>
+                                <div class="dl-project">${d.project}</div>
+                            </div>
+                            <div class="dl-dday ${cls}">${ddayText}</div>
+                        </div>`;
+                }
+            }
+            document.getElementById('deadlineSection').innerHTML = dlHtml;
+
+            // 폼 링크
+            if (settings.formUrl) {
+                document.getElementById('formLinkBar').style.display = 'flex';
+                document.getElementById('formLink').href = settings.formUrl;
+            }
+
+            // 프로젝트 카드
+            let html = '';
+            for (const p of projList) {
+                const color = getProjectColor(p.name);
+                const lastMemo = p.memos.length > 0 ? p.memos[p.memos.length - 1] : null;
+                const lastDate = lastMemo ? lastMemo.date : '-';
+                html += `
+                    <div class="project-card" onclick="showProject('${p.name}')" style="border-left-color:${color}">
+                        <div class="proj-name">${p.name}</div>
+                        <span class="proj-status status-${p.status}">${p.status}</span>
+                        <div class="proj-stats">
+                            <span>메모 ${p.memos.length}개</span>
+                            <span>최근: ${lastDate}</span>
+                        </div>
+                    </div>`;
+            }
+            document.getElementById('projectGrid').innerHTML = html;
+        }
+
+        // ===== 프로젝트 상세 =====
+        function showProject(name) {
+            currentProject = name;
+            activeTag = '전체';
+            document.getElementById('homeView').style.display = 'none';
+            document.getElementById('detailView').classList.add('active');
+
+            const color = getProjectColor(name);
+            const memos = allMemos.filter(m => m.project === name);
+
+            // 헤더
+            const memoCount = memos.length;
+            const tags = [...new Set(memos.flatMap(m => m.tags))];
+            document.getElementById('detailHeader').innerHTML = `
+                <h2 style="border-left: 4px solid ${color}; padding-left: 12px;">${name}</h2>
+                <div class="detail-meta">
+                    <span>메모 ${memoCount}개</span>
+                    <span>태그 ${tags.length}종</span>
+                </div>`;
+
+            // 폼 링크
+            if (settings.formUrl) {
+                document.getElementById('detailFormLinkBar').style.display = 'flex';
+                document.getElementById('detailFormLink').href = settings.formUrl;
+            }
+
+            // 태그 필터
+            const allTags = ['전체', ...tags];
+            let tagHtml = '';
+            for (const t of allTags) {
+                tagHtml += `<button class="tag-btn ${t === '전체' ? 'active' : ''}" onclick="filterTag('${t}', this)">${t === '전체' ? '전체' : '#' + t}</button>`;
+            }
+            document.getElementById('tagFilter').innerHTML = tagHtml;
+
+            renderMemos(memos);
+        }
+
+        function filterTag(tag, el) {
+            activeTag = tag;
+            document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+
+            let memos = allMemos.filter(m => m.project === currentProject);
+            if (tag !== '전체') {
+                memos = memos.filter(m => m.tags.includes(tag));
+            }
+            renderMemos(memos);
+        }
+
+        function renderMemos(memos) {
+            if (memos.length === 0) {
+                document.getElementById('memoList').innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📋</div>
+                        <p>아직 메모가 없습니다.<br>구글 폼에서 첫 메모를 추가해보세요!</p>
+                    </div>`;
+                return;
+            }
+
+            // 최신순 정렬
+            const sorted = [...memos].reverse();
+
+            let html = '';
+            for (const m of sorted) {
+                const tagHtml = m.tags.map(t => `<span class="memo-tag tag-${t}">#${t}</span>`).join('');
+                const linkHtml = m.link ? `<a class="memo-link" href="${m.link}" target="_blank">📎 첨부 파일/링크</a>` : '';
+
+                html += `
+                    <div class="memo-item">
+                        <div class="memo-header">
+                            <div class="memo-tags">${tagHtml}</div>
+                            <span class="memo-date">${m.date}</span>
+                        </div>
+                        <div class="memo-content">${escapeHtml(m.memo)}</div>
+                        ${linkHtml}
+                    </div>`;
+            }
+            document.getElementById('memoList').innerHTML = html;
+        }
+
+        function showHome() {
+            currentProject = null;
+            document.getElementById('homeView').style.display = 'block';
+            document.getElementById('detailView').classList.remove('active');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ===== 초기화 =====
+        loadData();
+    </script>
+</body>
+</html>
